@@ -4,15 +4,13 @@ LangGraph ReAct agent that answers questions about the [Bitext Customer Service 
 
 ## Setup (≈5 minutes)
 
-1. **Clone the repo** and create a virtual environment (Python **3.10+** recommended; required for the MCP server):
+1. **Clone the repo** and create a virtual environment (Python **3.10+** required):
 
    ```bash
    python3.10 -m venv venv    # or python3.11+
    source venv/bin/activate   # Windows: venv\Scripts\activate
    pip install -r requirements.txt
    ```
-
-   The interactive CLI works on Python 3.9+. [FastMCP](https://github.com/PrefectHQ/fastmcp) requires **3.10+**.
 
 2. **API key** — copy `.env.example` to `.env` and set your Nebius Token Factory key:
 
@@ -40,12 +38,6 @@ The CLI prints **reasoning steps** (router classification, tool calls, observati
 
 ```bash
 streamlit run streamlit_app.py
-```
-
-Automated check (same backend as the UI):
-
-```bash
-python test_streamlit.py
 ```
 
 ### Manual test (graders — same steps as other tasks)
@@ -81,12 +73,6 @@ When you ask **what to explore next**, the agent suggests a follow-up from **con
 3. `I'd rather see examples instead.` — refines the pending suggestion (still no tools).
 4. `Yes, do it.` — runs tools (`filter_data` → `get_examples`, etc.) and shows results.
 
-Automated test:
-
-```bash
-python test_recommender.py
-```
-
 Phrases that trigger suggestions: `What should I query next?`, `Suggest a follow-up query`, etc. Confirm with `Yes, do it`, `Go ahead`, etc.
 
 ### Example queries to try
@@ -115,7 +101,7 @@ User → router → agent ⟷ tools → update_profile → END
 
 - **Router** (`router.py`): Dedicated LLM call classifies each question as `structured`, `unstructured`, or `out_of_scope` before any tools run. Out-of-scope questions go to a polite decline node (no general-knowledge answers).
 - **Agent** (`agent.py`): LangGraph ReAct loop — Llama 3.3 70B chooses one tool per step, up to **12 iterations**, then returns a fallback message if stuck.
-- **Tools** (`tools.py`): Six pandas-backed tools with Pydantic schemas; a mutable working DataFrame is reset at the start of each question.
+- **Tools** (`tools.py`): Six pandas-backed tools with Pydantic schemas; a mutable working DataFrame is reset at the start of each question. The working DataFrame is process-global, so the CLI and MCP server are intended for single-user use at a time.
 
 ### Tools
 
@@ -185,13 +171,20 @@ The server uses **stdio** transport (default for `mcp.run()`). It waits for an M
 
 ### Test one tool from the command line
 
-From the project directory, with Python 3.10+ and dependencies installed:
+With the FastMCP client (Python 3.10+, repo deps installed), call a tool over stdio:
 
-```bash
-python3.10 test_mcp.py
+```python
+import asyncio
+from fastmcp import Client
+
+async def main():
+    async with Client("mcp_server.py") as client:
+        await client.call_tool("filter_data", {"column": "intent", "value": "get_refund"})
+        result = await client.call_tool("count_rows", {})
+        print(result.data)   # expects 997
+
+asyncio.run(main())
 ```
-
-This calls `filter_data(intent=get_refund)` then `count_rows` and expects **997**.
 
 ## Project layout
 
@@ -204,9 +197,7 @@ memory.py     # SQLite checkpointer setup
 data.py       # Hugging Face dataset loader
 main.py          # Interactive CLI (--session, --user)
 streamlit_app.py   # Streamlit chat UI (Bonus A)
-test_streamlit.py  # Bonus A automated tests
 recommender.py     # Bonus B query recommender
-test_recommender.py
 mcp_server.py    # FastMCP server (Task 3, Python 3.10+)
 mcp_config.example.json
 requirements.txt
