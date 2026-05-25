@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "bitext-analyst": {
+      "command": "/opt/homebrew/bin/python3.10",
+      "args": ["/ABSOLUTE/PATH/TO/assignment-3-ruth-adler/mcp_server.py"],
+      "cwd": "/ABSOLUTE/PATH/TO/assignment-3-ruth-adler"
+    }
+  }
+}

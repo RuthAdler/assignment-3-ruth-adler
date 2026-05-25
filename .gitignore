@@ -1,0 +1,12 @@
+.env
+venv/
+__pycache__/
+*.pyc
+.DS_Store
+.pytest_cache/
+.langgraph_api/
+checkpoints/
+profiles/*.json
+
+# Local tests (not submitted)
+test_*.py
